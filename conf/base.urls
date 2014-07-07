@@ -1,0 +1,23 @@
+
+        location /health/ {
+            add_header Access-Control-Allow-Origin *;
+            return 200 "healthy\n";
+        }
+        
+        location /timings/ {
+            add_header Access-Control-Allow-Origin *;
+            content_by_lua '
+                local logging = require("logging")
+                local count, qps, mean, mode, modecount, mintime, maxtime, stdev, elapsed_time = 
+                    logging.get_plot(ngx.shared.log_dict, "request_time")
+                ngx.say("Since last measure:\t", elapsed_time, " secs")
+                ngx.say("Request Count:\t\t", count)
+                ngx.say("Mean req time:\t\t", mean, " secs")
+                ngx.say("Requests per Secs:\t", qps)
+                ngx.say("Mode req time:\t\t", mode, " secs,", modecount, " times")
+                ngx.say("Min req time:\t\t", mintime, " secs")
+                ngx.say("Max req time:\t\t", maxtime, " secs")
+                ngx.say("StdDev req time:\t", stdev, " secs")
+            ';
+        }
+        
