@@ -3,38 +3,60 @@
 --           log_by_lua '
 --                local logging = require("logging")
 --                local request_time = ngx.now() - ngx.req.start_time()
---                logging.add_to_plot(ngx.shared.log_dict, "request_time", request_time)
+--                logging.log_response_time(ngx.shared.log_dict, request_time)
 --           '; 
+
+local cjson  = require "cjson"
 
 local logging = {}
 
 local function incr(dict, key, increment)
     increment = increment or 1
     local newval, err = dict:incr(key, increment)
+    
     if not newval or err then
       dict:add(key, increment)
       newval = increment
     end
+    
     return newval
 end
 
-function logging.add_to_plot(dict, key, value)
-    local sum_key = key .. "-sum"
-    local count_key = key .. "-count"
-    local start_time_key = key .. "-start_time"
+function logging.log_response_time(dict, value)
+    local sum_key = "request_time-sum"
+    local count_key = "request_time-count"
+    local start_time_key = "request_time-start_time"
     local request_time_key = value
-
+    
     dict:add(start_time_key, ngx.now())
-
+    
     incr(dict, sum_key, value)
     incr(dict, count_key)
     incr(dict, request_time_key)
+    
+    return true
 end
 
-function logging.get_plot(dict, key)
-    local sum_key = key .. "-sum"
-    local count_key = key .. "-count"
-    local start_time_key = key .. "-start_time"
+function logging.get_values(dict)
+    local keys = dict:get_keys(0)
+    local response_times = {}
+    
+    for k,v in pairs(keys) do
+        if tonumber(v) then
+            val = dict:get(v)
+            response_times[#response_times] = {response_time = v, count = val}
+        end
+    end
+    
+    dict:flush_all()
+    
+    return cjson.encode(response_times)
+end
+
+function logging.get_summary(dict)
+    local sum_key = "request_time-sum"
+    local count_key = "request_time-count"
+    local start_time_key = "request_time-start_time"
     local keys = dict:get_keys(0)
     local start_time = dict:get(start_time_key)
     local count = dict:get(count_key) or 0
@@ -44,7 +66,7 @@ function logging.get_plot(dict, key)
     local qps = 0
     
     if count > 0 then mean = sum / count end
-
+    
     for k,v in pairs(keys) do
         if tonumber(v) then
             val = dict:get(v)
@@ -58,9 +80,9 @@ function logging.get_plot(dict, key)
     end
     
     local stdev = math.sqrt(stdevsum/count)
-
+    
     local elapsed_time = 0
-
+    
     if start_time then
         elapsed_time = ngx.now() - start_time
     end
@@ -68,10 +90,20 @@ function logging.get_plot(dict, key)
     if elapsed_time > 0 then
         qps = count / elapsed_time
     end
-
+    
     dict:flush_all()
-
-    return count, qps, mean, mode, modecount, mintime, maxtime, stdev, elapsed_time
+    
+    local summary = {count=count,
+                     qps=qps,
+                     mean=mean,
+                     mode=mode,
+                     modecount=modecount,
+                     mintime=mintime,
+                     maxtime=maxtime,
+                     stdev=stdev,
+                     elapsed_time=elapsed_time}
+    
+    return cjson.encode(summary)
 end
 
 return logging

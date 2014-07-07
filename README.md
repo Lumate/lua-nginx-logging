@@ -71,7 +71,7 @@ Synopsis
 Limitations
 ===========
 
-* Doesn't support JSON
+* only supports JSON and raw output
 
 [Back to TOC](#table-of-contents)
 
@@ -96,7 +96,8 @@ enough permission to read the `.lua` file.
 TODO
 ====
 
-* Support JSON
+* Support other response formats
+* log other things
 
 [Back to TOC](#table-of-contents)
 

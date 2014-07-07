@@ -1,29 +1,39 @@
 
-        location /timings/health/ {
+        location /logging/health/ {
             add_header Access-Control-Allow-Origin *;
             content_by_lua '
+                local cjson  = require "cjson"
                 local logging = require("logging")
-                if logging then
+                if logging and cjson then
                     ngx.say("healthy\n")
                     return ngx.exit(ngx.OK)
                 end
             ';
         }
         
-        location /timings/ {
+        location /logging/timings/summary/(?<response_format>[\S]+)? {
             add_header Access-Control-Allow-Origin *;
             content_by_lua '
+                local cjson  = require "cjson"
                 local logging = require("logging")
-                local count, qps, mean, mode, modecount, mintime, maxtime, stdev, elapsed_time = 
-                    logging.get_plot(ngx.shared.log_dict, "request_time")
-                ngx.say("Since last measure:\t", elapsed_time, " secs")
-                ngx.say("Request Count:\t\t", count)
-                ngx.say("Mean req time:\t\t", mean, " secs")
-                ngx.say("Requests per Secs:\t", qps)
-                ngx.say("Mode req time:\t\t", mode, " secs,", modecount, " times")
-                ngx.say("Min req time:\t\t", mintime, " secs")
-                ngx.say("Max req time:\t\t", maxtime, " secs")
-                ngx.say("StdDev req time:\t", stdev, " secs")
+                local response = logging.get_summary(ngx.shared.log_dict)
+                decoded_response = cjson.decode(response)
+                
+                if ngx.var.response_format == "json"
+                    return response
+                elseif ngx.var.response_format == "txt"
+                    ngx.say("Time since last measure:\t", response.elapsed_time, " secs")
+                    ngx.say("Request Count:\t\t", response.count)
+                    ngx.say("Mean request time:\t\t", response.mean, " secs")
+                    ngx.say("Requests per Seconds:\t", response.qps)
+                    ngx.say("Mode request time:\t\t", response.mode, " secs,", response.modecount, " times")
+                    ngx.say("Min request time:\t\t", response.mintime, " secs")
+                    ngx.say("Max request time:\t\t", response.maxtime, " secs")
+                    ngx.say("StdDev request time:\t", response.stdev, " secs")
+                    return ngx.exit(ngx.OK)
+                else
+                    return "json and txt are only supported response formats"
+                end
             ';
         }
         
