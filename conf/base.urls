@@ -16,24 +16,33 @@
             content_by_lua '
                 local cjson  = require "cjson"
                 local logging = require("logging")
-                local response = logging.get_summary(ngx.shared.log_dict)
+                local response = logging.get_timing_summary(ngx.shared.log_dict)
                 decoded_response = cjson.decode(response)
                 
                 if ngx.var.response_format == "json"
                     return response
                 elseif ngx.var.response_format == "txt"
-                    ngx.say("Time since last measure:\t", response.elapsed_time, " secs")
-                    ngx.say("Request Count:\t\t", response.count)
-                    ngx.say("Mean request time:\t\t", response.mean, " secs")
-                    ngx.say("Requests per Seconds:\t", response.qps)
-                    ngx.say("Mode request time:\t\t", response.mode, " secs,", response.modecount, " times")
-                    ngx.say("Min request time:\t\t", response.mintime, " secs")
-                    ngx.say("Max request time:\t\t", response.maxtime, " secs")
-                    ngx.say("StdDev request time:\t", response.stdev, " secs")
+                    ngx.say("Time since last measure:\t", decoded_response.elapsed_time, " secs")
+                    ngx.say("Request Count:\t\t", decoded_response.count)
+                    ngx.say("Mean request time:\t\t", decoded_response.mean, " secs")
+                    ngx.say("Requests per Seconds:\t", decoded_response.qps)
+                    ngx.say("Mode request time:\t\t", decoded_response.mode, " secs,", decoded_response.modecount, " times")
+                    ngx.say("Min request time:\t\t", decoded_response.mintime, " secs")
+                    ngx.say("Max request time:\t\t", decoded_response.maxtime, " secs")
+                    ngx.say("StdDev request time:\t", decoded_response.stdev, " secs")
                     return ngx.exit(ngx.OK)
                 else
                     return "json and txt are only supported response formats"
                 end
+            ';
+        }
+        
+        location /logging/response/summary/(?<response_format>[\S]+)? {
+            add_header Access-Control-Allow-Origin *;
+            content_by_lua '
+                local logging = require("logging")
+                local response = logging.get_response_summary(ngx.shared.log_dict)
+                return response
             ';
         }
         

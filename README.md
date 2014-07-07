@@ -35,32 +35,31 @@ Synopsis
     
     server {
     
-        location /health/ {
+        location /logging/health/ {
             add_header Access-Control-Allow-Origin *;
-            return 200 "healthy\n";
+            content_by_lua '
+                local cjson  = require "cjson"
+                local logging = require("logging")
+                if logging and cjson then
+                    ngx.say("healthy\n")
+                    return ngx.exit(ngx.OK)
+                end
+            ';
         }
         
-        location /timings/ {
+        location /logging/response/summary/(?<response_format>[\S]+)? {
             add_header Access-Control-Allow-Origin *;
             content_by_lua '
                 local logging = require("logging")
-                local count, qps, mean, mode, modecount, mintime, maxtime, stdev, elapsed_time = 
-                    logging.get_plot(ngx.shared.log_dict, "request_time")
-                ngx.say("Since last measure:\t", elapsed_time, " secs")
-                ngx.say("Request Count:\t\t", count)
-                ngx.say("Mean req time:\t\t", mean, " secs")
-                ngx.say("Requests per Secs:\t", qps)
-                ngx.say("Mode req time:\t\t", mode, " secs,", modecount, " times")
-                ngx.say("Min req time:\t\t", mintime, " secs")
-                ngx.say("Max req time:\t\t", maxtime, " secs")
-                ngx.say("StdDev req time:\t", stdev, " secs")
+                local response = logging.get_response_summary(ngx.shared.log_dict)
+                return response
             ';
         }
         
         log_by_lua '
             local logging = require("logging")
             local request_time = ngx.now() - ngx.req.start_time()
-            logging.add_to_plot(ngx.shared.log_dict, "request_time", request_time)
+            logging.log_response_time(ngx.shared.log_dict, request_time)
        ';
         
     }

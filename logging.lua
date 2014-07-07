@@ -37,7 +37,16 @@ function logging.log_response_time(dict, value)
     return true
 end
 
-function logging.get_values(dict)
+function logging.log_response_status(dict)
+    local response_code = ngx.var.status or ""
+    local response_key = "response_code-"..response_code
+    
+    incr(dict, response_key)
+    
+    return true
+end
+
+function logging.get_timing_values(dict)
     local keys = dict:get_keys(0)
     local response_times = {}
     
@@ -53,7 +62,7 @@ function logging.get_values(dict)
     return cjson.encode(response_times)
 end
 
-function logging.get_summary(dict)
+function logging.get_timing_summary(dict)
     local sum_key = "request_time-sum"
     local count_key = "request_time-count"
     local start_time_key = "request_time-start_time"
@@ -104,6 +113,10 @@ function logging.get_summary(dict)
                      elapsed_time=elapsed_time}
     
     return cjson.encode(summary)
+end
+
+function logging.get_response_summary(dict)
+    
 end
 
 return logging
