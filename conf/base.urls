@@ -1,7 +1,13 @@
 
-        location /health/ {
+        location /timings/health/ {
             add_header Access-Control-Allow-Origin *;
-            return 200 "healthy\n";
+            content_by_lua '
+                local logging = require("logging")
+                if logging then
+                    ngx.say("healthy\n")
+                    return ngx.exit(ngx.OK)
+                end
+            ';
         }
         
         location /timings/ {
