@@ -1,0 +1,7 @@
+
+        log_by_lua '
+            local logging = require("logging")
+            local request_time = ngx.now() - ngx.req.start_time()
+            logging.log_response_time(ngx.shared.log_dict, request_time)
+            logging.log_response_status(ngx.shared.log_dict)
+       ';
