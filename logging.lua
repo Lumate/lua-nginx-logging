@@ -116,7 +116,18 @@ function logging.get_timing_summary(dict)
 end
 
 function logging.get_response_summary(dict)
+    local response_key_prefix = "response_code-"
+    local response_codes = {}
+    local keys = dict:get_keys(0)
     
+    for k,v in pairs(keys) do
+        if v:find(response_key_prefix, 1, true) then
+            val = dict:get(v)
+            response_codes[#response_codes] = {response_code = v, count = val}
+        end
+    end
+    
+    return cjson.encode(response_codes)
 end
 
 return logging
