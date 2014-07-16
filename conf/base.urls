@@ -11,7 +11,7 @@
             ';
         }
         
-        location /logging/timings/summary/(?<response_format>[\S]+)? {
+        location ~ /logging/timings/summary/(?<response_format>[\S]+)? {
             add_header Access-Control-Allow-Origin *;
             content_by_lua '
                 local cjson  = require "cjson"
@@ -19,9 +19,12 @@
                 local response = logging.get_timing_summary(ngx.shared.log_dict)
                 decoded_response = cjson.decode(response)
                 
-                if ngx.var.response_format == "json"
-                    return response
-                elseif ngx.var.response_format == "txt"
+                if ngx.var.response_format == "" then ngx.var.response_format = "json" end
+                
+                if ngx.var.response_format == "json" then
+                    ngx.say(response)
+                    return ngx.exit(ngx.OK)
+                elseif ngx.var.response_format == "txt" then
                     ngx.say("Time since last measure:\t", decoded_response.elapsed_time, " secs")
                     ngx.say("Request Count:\t\t", decoded_response.count)
                     ngx.say("Mean request time:\t\t", decoded_response.mean, " secs")
@@ -32,12 +35,13 @@
                     ngx.say("StdDev request time:\t", decoded_response.stdev, " secs")
                     return ngx.exit(ngx.OK)
                 else
-                    return "json and txt are only supported response formats"
+                    ngx.say("json and txt are only supported response formats")
+                    return ngx.exit(ngx.OK)
                 end
             ';
         }
         
-        location /logging/response/summary/(?<response_format>[\S]+)? {
+        location ~ /logging/response/summary/(?<response_format>[\S]+)? {
             add_header Access-Control-Allow-Origin *;
             content_by_lua '
                 local logging = require("logging")
