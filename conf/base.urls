@@ -3,9 +3,9 @@
             add_header Access-Control-Allow-Origin *;
             content_by_lua '
                 local cjson  = require "cjson"
-                local logging = require("logging")
+                local logging = require "logging" 
                 if logging and cjson then
-                    ngx.say("healthy\n")
+                    ngx.say("healthy")
                     return ngx.exit(ngx.OK)
                 end
             ';
