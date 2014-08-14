@@ -1,5 +1,5 @@
 
-        location /logging/health/ {
+        location /lua-nginx-logging/health/ {
             add_header Access-Control-Allow-Origin *;
             content_by_lua '
                 local cjson  = require "cjson"
@@ -11,13 +11,12 @@
             ';
         }
         
-        location ~ /logging/timings/summary/(?<response_format>[\S]+)? {
+        location ~ /lua-nginx-logging/timings/summary/(?<response_format>[\S]+)? {
             add_header Access-Control-Allow-Origin *;
             content_by_lua '
                 local cjson  = require "cjson"
                 local logging = require("logging")
                 local response = logging.get_timing_summary(ngx.shared.log_dict)
-                decoded_response = cjson.decode(response)
                 
                 if ngx.var.response_format == "" then ngx.var.response_format = "json" end
                 
@@ -25,6 +24,7 @@
                     ngx.say(response)
                     return ngx.exit(ngx.OK)
                 elseif ngx.var.response_format == "txt" then
+                    decoded_response = cjson.decode(response)
                     ngx.say("Time since last measure:\t", decoded_response.elapsed_time, " secs")
                     ngx.say("Request Count:\t\t", decoded_response.count)
                     ngx.say("Mean request time:\t\t", decoded_response.mean, " secs")
@@ -41,12 +41,21 @@
             ';
         }
         
-        location ~ /logging/response/summary/(?<response_format>[\S]+)? {
+        location ~ /lua-nginx-logging/response/summary/(?<response_format>[\S]+)? {
             add_header Access-Control-Allow-Origin *;
             content_by_lua '
                 local logging = require("logging")
                 local response = logging.get_response_summary(ngx.shared.log_dict)
-                return response
+                
+                if ngx.var.response_format == "" then ngx.var.response_format = "json" end
+                
+                if ngx.var.response_format == "json" then
+                    ngx.say(response)
+                    return ngx.exit(ngx.OK)
+                else
+                    ngx.say("json is only supported response format")
+                    return ngx.exit(ngx.OK)
+                end
             ';
         }
         
