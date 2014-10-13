@@ -20,6 +20,6 @@ dependencies = {
 build = {
     type = "builtin",
     modules = {
-        ["resty.hmac"] = "lib/resty/hmac.lua"
+        ["nginx.logging"] = "logging.lua"
     }
 }
